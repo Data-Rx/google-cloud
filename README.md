@@ -7,7 +7,7 @@ A library of functions for working with Google Cloud.
 To install the library:
 
 ```bash
-$ git clone 
+$ git clone https://github.com/Data-Rx/google-cloud
 $ cd google-cloud
 $ lein install
 ```
