@@ -1,0 +1,7 @@
+(ns google-cloud.core-test
+  (:require [clojure.test :refer :all]
+            [google-cloud.core :refer :all]))
+
+(deftest a-test
+  (testing "FIXME, I fail."
+    (is (= 1 1))))
