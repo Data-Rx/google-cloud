@@ -81,6 +81,33 @@
       (map #(decrypt-message % crypto-key) raw-messages)
       false)))
 
+(import 'java.util.Base64)
+
+(defn decode64 [to-decode]
+  (String. (.decode (Base64/getDecoder) to-decode)))
+
+(defn ^:private decode64-message
+  [message]
+  (update-in message [:message :data] decode64))  
+
+(defn get-messages-clear
+  "@param {String} subscription
+   @param {Integer} max-num-of-messages <crypto-key> string.
+   @param {String} crypto-key
+   @return List of decrypted messages from the specified subscription"
+  [subscription max-num-of-messages crypto-key]
+  (let [raw-messages (-> (http/post (str google-api (:project_id (creds)) "/subscriptions/" subscription ":pull")
+                                    {:oauth-token (oauth/get-token)
+                                     :body        (ch/generate-string {"maxMessages" max-num-of-messages
+                                     "returnImmediately" true})
+                                     :as :json})
+                         :body
+                         :receivedMessages)]
+    (if raw-messages
+        ; leave messages in clear
+	      (map #(decode64-message %) raw-messages)
+      	false)))
+
 (defn ack-message
   "@param {String} subscription
    @param {Integer} ackId
