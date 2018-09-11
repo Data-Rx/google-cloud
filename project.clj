@@ -1,4 +1,4 @@
-(defproject net.data-rx/google-cloud "0.2.0"
+(defproject genekim/google-cloud "0.3.0"
   :description "A library of functions for working with Google Cloud."
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [environ "1.1.0"]
