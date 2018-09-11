@@ -4,11 +4,26 @@
             [cheshire.core :as ch]
             [clj-http.client :as http]
             [taoensso.timbre :as timbre]
-            [google-cloud.oauth :as oauth]))
+            [google-cloud.oauth :as oauth])
+  (:import  [java.util.Base64]))
 
 (def google-api "https://pubsub.googleapis.com/v1/projects/")
 
 (defn creds [] (ch/parse-string (slurp (env :google-application-credentials)) true))
+
+(import 'java.util.Base64)
+
+(defn decode64 [to-decode]
+  (String. (.decode (Base64/getDecoder) to-decode)))
+
+(defn encode64 [to-encode]
+  (.encodeToString (Base64/getEncoder) (.getBytes to-encode)))
+
+(defn ^:private decode64-message
+  [message]
+  ; fnil is to handle case when [:message :data] doesn't exist
+  (update-in message [:message :data] (fnil decode64 "")))
+
 
 (defn create-topic
   "@param {String} topic
@@ -45,6 +60,20 @@
   [subscription]
   (http/delete (str google-api (:project_id (creds)) "/subscriptions/" subscription)
                {:oauth-token (oauth/get-token)}))
+
+
+(def testmessage
+  {:ackId "TCcYRElTK0MLKlgRTgQhIT4wPkVTRFAGFixdRkhRNxkIaFEOT14jPzUgKEUQBwBPAihdeTBNO0FdcGhRDRlyfWBzbwhAUwtDBn1XURoIYlxORAdzMhh7dGRwaV8TCQVDWnhfXzPAqeP6w6lMZiQ9XhJLLD5-LC1FQV5AEg",
+   :message {:data "[
+                      {
+                        \"asin\": \"B003YMNVC0\",
+                        \"salesrank\": 184097
+                      }
+                    ]",
+             :attributes {:EVENT "new-salesrank", :DATE "Sun Sep  9 21:54:14 UTC 2018"},
+             :messageId "199553508769604",
+             :publishTime "2018-09-09T21:54:14.480Z"}})
+
 (defn publish
   "@param {String} topic
    @param {Vector} messages
@@ -52,10 +81,30 @@
    @side-effect Publish the given messages to the given topic
    @returns HTTP Response. If successful, the response body will contain the
     following object `{'messageIds': [string]}`"
-  [topic messages crypto-key]
-  (http/post (str google-api (:project_id (creds)) "/topics/" topic ":publish")
-             {:oauth-token (oauth/get-token)
-              :body        (ch/generate-string {"messages" (map (fn [m] {"data" (lock/encrypt-as-base64 m crypto-key)}) messages)})}))
+  ([topic messages crypto-key]
+   (publish topic messages crypto-key nil))
+  ([topic messages crypto-key attrs]
+   (let [body {}
+         body (merge body)])
+   (http/post (str google-api (:project_id (creds)) "/topics/" topic ":publish")
+              {:oauth-token (oauth/get-token)
+               :body        (ch/generate-string
+                              {"messages"
+                               (map (fn [m]
+                                      (let [data (if (nil? crypto-key)
+                                                   (encode64 m)
+                                                   (lock/encrypt-as-base64 m crypto-key))
+                                            body {"data" data}
+                                            body (merge body
+                                                        (if attrs
+                                                          {"attributes" attrs}
+                                                          {}))]
+                                        body))
+                                    messages)})})))
+
+(defn publish-with-attrs
+  [topic messages crypto-key attrs])
+
 
 (defn ^:private decrypt-message
   "@param {Map} message has the following structure {:ackID XXX :message {:data asd123 :messageId 1234}}
@@ -74,21 +123,17 @@
   (let [raw-messages (-> (http/post (str google-api (:project_id (creds)) "/subscriptions/" subscription ":pull")
                                     {:oauth-token (oauth/get-token)
                                      :body        (ch/generate-string {"maxMessages" max-num-of-messages})
-                                     :as :json})
+                                     :as          :json})
                          :body
                          :receivedMessages)]
     (if raw-messages
       (map #(decrypt-message % crypto-key) raw-messages)
       false)))
 
-(import 'java.util.Base64)
 
-(defn decode64 [to-decode]
-  (String. (.decode (Base64/getDecoder) to-decode)))
-
-(defn ^:private decode64-message
-  [message]
-  (update-in message [:message :data] decode64))  
+;
+; we can delete this now?
+;
 
 (defn get-messages-clear
   "@param {String} subscription
@@ -98,15 +143,19 @@
   [subscription max-num-of-messages crypto-key]
   (let [raw-messages (-> (http/post (str google-api (:project_id (creds)) "/subscriptions/" subscription ":pull")
                                     {:oauth-token (oauth/get-token)
-                                     :body        (ch/generate-string {"maxMessages" max-num-of-messages
-                                     "returnImmediately" true})
-                                     :as :json})
+                                     :body        (ch/generate-string
+                                                    {"maxMessages"       max-num-of-messages
+                                                     "returnImmediately" true})
+                                     :as          :json})
                          :body
                          :receivedMessages)]
     (if raw-messages
-        ; leave messages in clear
-	      (map #(decode64-message %) raw-messages)
-      	false)))
+      ; leave messages in clear
+      (map #(decode64-message %) raw-messages)
+      ; used to return false
+      ; instead, let's return nil, which is more easily processed
+      ; by doseq, etc
+      nil)))
 
 (defn ack-message
   "@param {String} subscription
