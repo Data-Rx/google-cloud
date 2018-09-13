@@ -7,11 +7,21 @@
                  [lock-key "1.4.1"]
                  [clj-http "2.3.0"]
                  [buddy/buddy-sign "1.2.0"]
-                 [buddy/buddy-core "1.1.1"]]
+                 [buddy/buddy-core "1.1.1"]
+                 [com.taoensso/timbre "4.10.0"]]
   :plugins [[lein-cljfmt "0.5.6"]
             [lein-environ "1.1.0"]]
+
+            
   :profiles {:default-env {:env {}}
              :common-dev  {:source-paths ["src" "dev"]}
              :dev         [:common-dev :default-env :profile-env]
              :test        [:common-dev :default-env :profile-env]
-             :uberjar     {:aot :all}})
+             :uberjar     {:aot :all}}
+  ; needed for Java 9+
+  ; https://www.deps.co/blog/how-to-upgrade-clojure-projects-to-use-java-9/
+  :jvm-opts ~(let [version     (System/getProperty "java.version")
+                   [major _ _] (clojure.string/split version #"\.")]
+               (if (>= (java.lang.Integer/parseInt major) 9)
+                 ["--add-modules" "java.xml.bind"]
+                 [])))
