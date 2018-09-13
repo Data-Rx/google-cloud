@@ -1,16 +1,19 @@
-(defproject genekim/google-cloud "0.3.0"
+(defproject genekim/google-cloud "0.3.2"
   :description "A library of functions for working with Google Cloud."
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [environ "1.1.0"]
-                 [http-kit "2.2.0"]
-                 [clj-time "0.12.2"]
-                 [lock-key "1.4.1"]
-                 [clj-http "2.3.0"]
-                 [buddy/buddy-sign "1.2.0"]
-                 [buddy/buddy-core "1.1.1"]
+                 [http-kit "2.3.0"]
+                 [clj-time "0.14.4"]
+                 [lock-key "1.5.0"]
+                 [clj-http "3.9.1"]
+                 [cheshire "5.8.0"]
+                 [buddy/buddy-sign "3.0.0"]
+                 [buddy/buddy-core "1.5.0"]
                  [com.taoensso/timbre "4.10.0"]]
   :plugins [[lein-cljfmt "0.5.6"]
-            [lein-environ "1.1.0"]]
+            [lein-environ "1.1.0"]
+            [lein-ancient "0.6.15"]
+            [lein-localrepo "0.5.4"]]
 
             
   :profiles {:default-env {:env {}}
