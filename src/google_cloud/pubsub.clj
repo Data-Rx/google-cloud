@@ -5,7 +5,7 @@
             [clj-http.client :as http]
             [taoensso.timbre :as timbre]
             [google-cloud.oauth :as oauth])
-  (:import  [java.util.Base64]))
+  (:import  java.util.Base64))
 
 (def google-api "https://pubsub.googleapis.com/v1/projects/")
 
