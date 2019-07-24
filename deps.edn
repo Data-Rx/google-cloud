@@ -8,5 +8,5 @@
   buddy/buddy-sign    {:mvn/version "3.0.0"}
   buddy/buddy-core    {:mvn/version "1.5.0"}
   com.taoensso/timbre {:mvn/version "4.10.0"}
-  }
+  }}
 
